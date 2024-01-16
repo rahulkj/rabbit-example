@@ -1,18 +1,19 @@
 package com.example;
 
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.Cloud;
-import org.springframework.cloud.CloudFactory;
-import org.springframework.cloud.service.common.AmqpServiceInfo;
-import org.springframework.cloud.service.messaging.RabbitConnectionFactoryCreator;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+import io.pivotal.cfenv.core.CfEnv;
+import io.pivotal.cfenv.core.CfService;
+
+@Configuration
 @Profile("cloud")
 public class CloudConfiguration {
 
@@ -24,9 +25,11 @@ public class CloudConfiguration {
 
 	@Bean
 	ConnectionFactory connectionFactory() {
-		Cloud cloud = new CloudFactory().getCloud();
-		AmqpServiceInfo serviceInfo = (AmqpServiceInfo) cloud.getServiceInfo(rabbitmqServiceName);
-		return new RabbitConnectionFactoryCreator().create(serviceInfo, null);
+		CfEnv cfEnv = new CfEnv();
+		CfService rabbitmqService = cfEnv.findServiceByName(rabbitmqServiceName);
+		CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
+		connectionFactory.setUri(rabbitmqService.getCredentials().getUri());
+		return connectionFactory;
 	}
 
 	@Bean
